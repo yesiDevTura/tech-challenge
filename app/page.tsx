@@ -12,12 +12,12 @@ export default function Home() {
           <span className="text-xl font-bold">MarketingAI</span>
         </div>
         <div className="flex gap-4">
-          <Link href="/api/auth/login">
+          <a href="/api/auth/login">
             <Button variant="ghost">Sign In</Button>
-          </Link>
-          <Link href="/api/auth/login">
+          </a>
+          <a href="/api/auth/login">
             <Button>Get Started</Button>
-          </Link>
+          </a>
         </div>
       </nav>
 
@@ -42,11 +42,11 @@ export default function Home() {
           </p>
 
           <div className="flex gap-4 justify-center">
-            <Link href="/api/auth/login">
+            <a href="/api/auth/login">
               <Button size="lg" className="text-lg px-8">
                 Start Free Trial
               </Button>
-            </Link>
+            </a>
             <Link href="#features">
               <Button size="lg" variant="outline" className="text-lg px-8">
                 Learn More
