@@ -45,7 +45,7 @@ export default function GeneratePage() {
     setHeadlines([]);
 
     try {
-      const { user } = useUser();
+      //const { user } = useUser();
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {
