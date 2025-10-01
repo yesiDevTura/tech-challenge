@@ -12,6 +12,7 @@ datasource db {
 model Subscription {
   id                   String    @id @default(cuid())
   userId               String    @map("user_id")
+  userName             String    @map("userName")
   stripeCustomerId     String?   @map("stripe_customer_id")
   stripeSubscriptionId String?   @map("stripe_subscription_id")
   plan                 String

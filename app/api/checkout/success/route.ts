@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
     console.log('📋 Session ID:', sessionId);
     console.log('🔍 Fetching session from Stripe...');
 
-    // Obtener la sesión de Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     console.log('✅ Session retrieved from Stripe');
     console.log('Payment status:', session.payment_status);
@@ -39,8 +38,10 @@ export async function GET(request: NextRequest) {
 
     const userId = session.metadata?.userId || session.client_reference_id;
     const subscriptionId = session.subscription as string;
-
+    const userName = session.customer_details?.name || session.metadata?.userName || 'User'; // ← AGREGAR
+    
     console.log('👤 User ID:', userId);
+    console.log('👤 User Name:', userName); // ← AGREGAR
     console.log('📝 Subscription ID:', subscriptionId);
 
     if (!userId) {
@@ -55,8 +56,7 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Checking if subscription already exists in database...');
 
-    // Verificar si ya existe
-    const existingSubscription = await prisma.subscription.findUnique({
+    const existingSubscription = await prisma.subscription.findFirst({
       where: { stripeSubscriptionId: subscriptionId }
     });
 
@@ -67,24 +67,32 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Fetching full subscription details from Stripe...');
 
-    // Obtener detalles completos de la subscripción
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
     console.log('✅ Subscription details retrieved');
     console.log('Status:', subscription.status);
-    console.log('Current period end:', new Date(subscription.current_period_end * 1000));
+    console.log('Subscription object:', JSON.stringify(subscription, null, 2));
 
     console.log('💾 Attempting to save to database...');
     console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
 
-    // Guardar en base de datos
+    let periodEndDate: Date | null = null;
+    
+    if (subscription.current_period_end) {
+      periodEndDate = new Date(subscription.current_period_end * 1000);
+      console.log('Period end date:', periodEndDate);
+    } else {
+      console.warn('⚠️ No current_period_end in subscription, using null');
+    }
+
     const savedSubscription = await prisma.subscription.create({
       data: {
         userId: userId,
+        userName: userName,
         stripeCustomerId: session.customer as string,
         stripeSubscriptionId: subscriptionId,
         plan: 'pro',
         status: subscription.status,
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+        currentPeriodEnd: periodEndDate,
       },
     });
 
@@ -95,13 +103,12 @@ export async function GET(request: NextRequest) {
     console.log('Status:', savedSubscription.status);
 
     return NextResponse.redirect(new URL('/dashboard?success=true&saved=true', request.url));
-
+    
   } catch (error: any) {
     console.error('❌❌❌ CRITICAL ERROR in success callback:');
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
-    console.error('Full error:', JSON.stringify(error, null, 2));
     
     return NextResponse.redirect(new URL('/dashboard?error=save_failed&details=' + encodeURIComponent(error.message), request.url));
   }
