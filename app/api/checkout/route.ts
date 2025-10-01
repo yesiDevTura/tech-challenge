@@ -3,19 +3,24 @@ import { getSession } from '@auth0/nextjs-auth0';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2025-08-27.basil',
 });
 
 export async function POST(request: NextRequest) {
   try {
-    // Verificar autenticación
-    const session = await getSession();
+    // Obtener sesión usando el request
+    const res = new NextResponse();
+    const session = await getSession(request, res);
+    
     if (!session || !session.user) {
+      console.error('No session found in checkout');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = session.user.sub;
     const userEmail = session.user.email;
+
+    console.log('Creating checkout for user:', userId);
 
     // Crear sesión de checkout de Stripe
     const checkoutSession = await stripe.checkout.sessions.create({
@@ -34,6 +39,8 @@ export async function POST(request: NextRequest) {
         userId: userId,
       },
     });
+
+    console.log('Checkout session created:', checkoutSession.id);
 
     return NextResponse.json({ url: checkoutSession.url });
   } catch (error: any) {
