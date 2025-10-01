@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useUser } from '@auth0/nextjs-auth0/client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,12 +44,17 @@ export default function GeneratePage() {
     setHeadlines([]);
 
     try {
+      const { user } = useUser();
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ keyword: keyword.trim() }),
+        body: JSON.stringify({ 
+          keyword: keyword.trim(),
+          userId: user?.sub,
+          userEmail: user?.email
+        }),
       });
 
       const data = await response.json();

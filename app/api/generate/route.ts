@@ -1,19 +1,16 @@
 import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@auth0/nextjs-auth0';
 
 // Función para analizar SEO
 function analyzeSEO(headline: string, keyword: string) {
   const headlineLength = headline.length;
   const wordCount = headline.split(/\s+/).length;
   
-  // Calcular densidad de keyword
   const keywordLower = keyword.toLowerCase();
   const headlineLower = headline.toLowerCase();
   const keywordOccurrences = (headlineLower.match(new RegExp(keywordLower, 'g')) || []).length;
   const keywordDensity = wordCount > 0 ? (keywordOccurrences / wordCount) * 100 : 0;
 
-  // Análisis de longitud ideal (50-60 caracteres para SEO)
   let lengthScore = 'good';
   let lengthMessage = 'Perfect length for SEO';
   
@@ -25,7 +22,6 @@ function analyzeSEO(headline: string, keyword: string) {
     lengthMessage = 'Too long - might be truncated in search results';
   }
 
-  // Análisis de keyword density (ideal 1-3%)
   let densityScore = 'good';
   let densityMessage = 'Good keyword usage';
   
@@ -54,33 +50,28 @@ function analyzeSEO(headline: string, keyword: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Verificar autenticación
-    const res = new NextResponse();
-    const session = await getSession(request, res);
-    if (!session || !session.user) {
-      console.error('No session found in generate');
+    const body = await request.json();
+    const { keyword, userId, userEmail } = body;
+
+    // Validar datos
+    if (!userId || !userEmail) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const { keyword } = await request.json();
 
     if (!keyword || keyword.trim().length === 0) {
       return NextResponse.json({ error: 'Keyword is required' }, { status: 400 });
     }
 
-    // Verificar API key
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: 'AI API key not configured' }, { status: 500 });
     }
 
-    // Inicializar Groq (usa el SDK de OpenAI con el endpoint de Groq)
     const groq = new OpenAI({ 
       apiKey,
       baseURL: 'https://api.groq.com/openai/v1'
     });
 
-    // Prompt optimizado para generar headlines de marketing
     const prompt = `You are an expert marketing copywriter. Generate 3 compelling, creative, and conversion-focused marketing headlines for the keyword: "${keyword}".
 
 Requirements:
@@ -95,9 +86,8 @@ Format your response as a JSON array with exactly 3 headlines:
 
 Only respond with the JSON array, nothing else.`;
 
-    // Llamar a Groq API (ultra rápido!)
     const completion = await groq.chat.completions.create({
-      model:  'llama-3.3-70b-versatile', // Modelo gratuito de Groq
+      model: 'llama-3.3-70b-versatile',
       messages: [
         {
           role: 'system',
@@ -114,15 +104,12 @@ Only respond with the JSON array, nothing else.`;
 
     const text = completion.choices[0].message.content || '';
 
-    // Intentar parsear la respuesta como JSON
     let headlines: string[];
     try {
-      // Limpiar la respuesta para extraer solo el JSON
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         headlines = JSON.parse(jsonMatch[0]);
       } else {
-        // Fallback: dividir por líneas
         headlines = text
           .split('\n')
           .filter(line => line.trim().length > 0 && !line.includes('[') && !line.includes(']'))
@@ -131,14 +118,12 @@ Only respond with the JSON array, nothing else.`;
           .slice(0, 3);
       }
     } catch (e) {
-      // Si falla el parsing, dividir manualmente
       headlines = text
         .split('\n')
         .filter(line => line.trim().length > 0)
         .slice(0, 3);
     }
 
-    // Asegurar que tengamos exactamente 3 headlines
     if (headlines.length < 3) {
       headlines = [
         ...headlines,
@@ -146,7 +131,6 @@ Only respond with the JSON array, nothing else.`;
       ];
     }
 
-    // Analizar SEO de cada headline
     const headlinesWithSEO = headlines.slice(0, 3).map(headline => ({
       text: headline,
       seo: analyzeSEO(headline, keyword),
