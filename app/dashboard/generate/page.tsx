@@ -30,6 +30,7 @@ export default function GeneratePage() {
   const [loading, setLoading] = useState(false);
   const [headlines, setHeadlines] = useState<Headline[]>([]);
   const [error, setError] = useState('');
+  const { user } = useUser();
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
