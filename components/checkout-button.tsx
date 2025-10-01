@@ -12,6 +12,7 @@ export function CheckoutButton() {
     try {
       const response = await fetch('/api/checkout', {
         method: 'POST',
+        credentials: 'include',
       });
 
       const data = await response.json();
