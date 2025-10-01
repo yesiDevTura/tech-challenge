@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.AUTH0_BASE_URL}/dashboard?success=true`,
+      success_url: `${process.env.AUTH0_BASE_URL}/api/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.AUTH0_BASE_URL}/dashboard?canceled=true`,
       metadata: {
         userId: userId,
