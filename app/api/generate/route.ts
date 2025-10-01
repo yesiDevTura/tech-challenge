@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
   try {
     // Verificar autenticación
     const res = new NextResponse();
-    const session = await getSession();
+    const session = await getSession(request, res);
     if (!session || !session.user) {
       console.error('No session found in generate');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
